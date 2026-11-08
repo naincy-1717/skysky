@@ -25,3 +25,10 @@ data class WeatherData(
 data class WindData(
     val speed: Double
 )
+data class CitySearchResult(
+    val name: String,
+    val state: String?,
+    val country: String,
+    val lat: Double,
+    val lon: Double
+)
