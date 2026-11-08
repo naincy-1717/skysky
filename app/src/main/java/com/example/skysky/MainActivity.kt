@@ -156,64 +156,87 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 title = { Text("Enter City") },
                 text = {
                     Column {
-                        OutlinedTextField(
-                            value = city,
-                            onValueChange = { input ->
-                                city = input
-                                if (input.length >= 3) {
-                                    viewModel.getCitySuggestions(input)
-                                } else {
-                                    viewModel.getCitySuggestions("")
-                                }
-                            },
-                            placeholder = { Text("Type the city name") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(
-                                onSearch = {
-                                    if (city.isNotBlank()) {
-                                        viewModel.fetchWeather(city)
-                                        viewModel.getCitySuggestions("")
-                                        showSearchPopup = false
-                                        keyboardController?.hide()
-                                    }
-                                }
-                            ),
-                            trailingIcon = {
-                                IconButton(onClick = {
-                                    if (city.isNotBlank()) {
-                                        viewModel.fetchWeather(city)
-                                        viewModel.getCitySuggestions("")
-                                        showSearchPopup = false
-                                        keyboardController?.hide()
-                                    }
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Public,
-                                        contentDescription = "Search World",
-                                        tint = lightBlue
-                                    )
-                                }
-                            }
-                        )
+                        if (showSearchPopup) {
+                            AlertDialog(
+                                onDismissRequest = { showSearchPopup = false },
+                                title = { Text("Enter City") },
+                                text = {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        OutlinedTextField(
+                                            value = city,
+                                            onValueChange = { typedText ->
+                                                city = typedText
+                                                // Only fetch suggestions if the user has typed at least 3 letters
+                                                // and has paused/continued typing normally without breaking focus.
+                                                if (typedText.length >= 2) {
+                                                    viewModel.getCitySuggestions(typedText)
+                                                }
+                                            },
+                                            placeholder = { Text("Type the city name") },
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                            keyboardActions = KeyboardActions(
+                                                onSearch = {
+                                                    viewModel.fetchWeather(city)
+                                                    showSearchPopup = false
+                                                    keyboardController?.hide()
+                                                }
+                                            ),
+                                            trailingIcon = {
+                                                IconButton(onClick = {
+                                                    viewModel.fetchWeather(city)
+                                                    showSearchPopup = false
+                                                    keyboardController?.hide()
+                                                }) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Public,
+                                                        contentDescription = "Search World",
+                                                        tint = lightBlue
+                                                    )
+                                                }
+                                            }
+                                        )
 
-                        DropdownMenu(
-                            expanded = citySuggestions.isNotEmpty(),
-                            onDismissRequest = { viewModel.getCitySuggestions("") }
-                        ) {
-                            citySuggestions.forEach { suggestion ->
-                                val stateInfo = if (!suggestion.state.isNullOrEmpty()) ", ${suggestion.state}" else ""
-                                DropdownMenuItem(
-                                    text = { Text("${suggestion.name}$stateInfo, ${suggestion.country}") },
-                                    onClick = {
-                                        city = suggestion.name
-                                        viewModel.fetchWeather(suggestion.name)
-                                        viewModel.getCitySuggestions("")
-                                        showSearchPopup = false
-                                        keyboardController?.hide()
+                                        // Dropdown list for similar city suggestions
+                                        val citySuggestions by viewModel.citySuggestions.collectAsState()
+
+                                        if (citySuggestions.isNotEmpty()) {
+                                            // Keeps the dropdown compact right beneath the text field without forcing the keyboard down
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Card(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                elevation = CardDefaults.cardElevation(4.dp),
+                                                colors = CardDefaults.cardColors(containerColor = Color.White)
+                                            ) {
+                                                Column(modifier = Modifier.padding(8.dp)) {
+                                                    citySuggestions.forEach { suggestion ->
+                                                        TextButton(
+                                                            onClick = {
+                                                                city = suggestion.name
+                                                                viewModel.fetchWeather(suggestion.name)
+                                                                showSearchPopup = false
+                                                                keyboardController?.hide()
+                                                            },
+                                                            modifier = Modifier.fillMaxWidth()
+                                                        ) {
+                                                            Text(
+                                                                text = "${suggestion.name}, ${suggestion.state ?: ""} (${suggestion.country})",
+                                                                color = navyBlue,
+                                                                modifier = Modifier.fillMaxWidth()
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
-                                )
-                            }
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = { showSearchPopup = false }) {
+                                        Text("Cancel", color = lightBlue)
+                                    }
+                                }
+                            )
                         }
                     }
                 },
