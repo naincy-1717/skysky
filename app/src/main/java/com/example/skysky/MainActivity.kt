@@ -6,16 +6,20 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -40,49 +44,24 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     var city by remember { mutableStateOf("") }
+    var showSearchPopup by remember { mutableStateOf(false) }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val lightBlue = Color(0xFFADD8E6)
     val navyBlue = Color(0xFF000080)
 
-    // This allows us to control the keyboard (like hiding it after a search)
-    val keyboardController = LocalSoftwareKeyboardController.current
-
     Scaffold(
-        containerColor = navyBlue,
-        topBar = {
-            OutlinedTextField(
-                value = city,
-                onValueChange = { city = it },
-                placeholder = { Text("Type the city name", color = Color.Gray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 40.dp, bottom = 16.dp)
-                    .background(Color.White, shape = MaterialTheme.shapes.small),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent
-                ),
-                // 1. Changes the enter key on the keyboard to a "Search" icon/action
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                // 2. Tells the app what to do when that search button is pressed
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        viewModel.fetchWeather(city)
-                        keyboardController?.hide() // Hides the keyboard after searching
-                    }
-                ),
-                trailingIcon = {
-                    IconButton(onClick = {
-                        viewModel.fetchWeather(city)
-                        keyboardController?.hide()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Public,
-                            contentDescription = "Search World",
-                            tint = navyBlue
-                        )
-                    }
+        containerColor = lightBlue,
+        floatingActionButton = {
+            if (weatherData != null) {
+                FloatingActionButton(
+                    onClick = { showSearchPopup = true },
+                    containerColor = Color.White,
+                    contentColor = lightBlue
+                ) {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search Again")
                 }
-            )
+            }
         }
     ) { paddingValues ->
         Box(
@@ -118,6 +97,35 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         Text(text = "Wind Speed: ${weatherData!!.wind.speed} m/s")
                     }
                 }
+            } else {
+                // Column added here to stack the button and the text instruction
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    FloatingActionButton(
+                        onClick = { showSearchPopup = true },
+                        shape = CircleShape,
+                        containerColor = Color.White,
+                        contentColor = lightBlue,
+                        modifier = Modifier.size(72.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add City",
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // The text line guiding the user
+                    Text(
+                        text = "Tap to enter the city",
+                        color = navyBlue,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             if (errorMessage != null) {
@@ -131,6 +139,47 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         .padding(8.dp)
                 )
             }
+        }
+
+        if (showSearchPopup) {
+            AlertDialog(
+                onDismissRequest = { showSearchPopup = false },
+                title = { Text("Enter City") },
+                text = {
+                    OutlinedTextField(
+                        value = city,
+                        onValueChange = { city = it },
+                        placeholder = { Text("Type the city name") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                viewModel.fetchWeather(city)
+                                showSearchPopup = false
+                                keyboardController?.hide()
+                            }
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                viewModel.fetchWeather(city)
+                                showSearchPopup = false
+                                keyboardController?.hide()
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Public,
+                                    contentDescription = "Search World",
+                                    tint = lightBlue
+                                )
+                            }
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { showSearchPopup = false }) {
+                        Text("Cancel", color = lightBlue)
+                    }
+                }
+            )
         }
     }
 }
