@@ -6,9 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
 class MainActivity : ComponentActivity() {
-    // Connects the UI directly to your background ViewModel
     private val viewModel: WeatherViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,29 +35,36 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
     val weatherData by viewModel.weatherData.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    // Remembers the city typed in the search bar
     var city by remember { mutableStateOf("") }
-
-    // Navy Blue background color
     val navyBlue = Color(0xFF000080)
 
     Scaffold(
         containerColor = navyBlue,
         topBar = {
-            // Search bar at the top
+            // Search bar is moved lower using top = 40.dp
             OutlinedTextField(
                 value = city,
                 onValueChange = { city = it },
-                placeholder = { Text("Enter City Name", color = Color.Gray) },
+                placeholder = { Text("Type city name", color = Color.Gray) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 80.dp, bottom = 16.dp)
                     .background(Color.White, shape = MaterialTheme.shapes.small),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent
-                )
+                ),
+                // Small world icon added at the end of the toolbar
+                trailingIcon = {
+                    IconButton(onClick = { viewModel.fetchWeather(city) }) {
+                        Icon(
+                            imageVector = Icons.Default.Public,
+                            contentDescription = "Search World",
+                            tint = navyBlue
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -69,7 +74,9 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            // Display weather data if available, otherwise show the Plus icon
+            // The plus sign has been completely removed from this area
+
+            // Display weather data if available
             if (weatherData != null) {
                 Card(
                     modifier = Modifier.padding(16.dp),
@@ -96,21 +103,6 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         Text(text = "Humidity: ${weatherData!!.main.humidity}%")
                         Text(text = "Wind Speed: ${weatherData!!.wind.speed} m/s")
                     }
-                }
-            } else {
-                // Circular Plus Button in the exact middle of the screen
-                FloatingActionButton(
-                    onClick = { viewModel.fetchWeather(city) },
-                    shape = CircleShape,
-                    containerColor = Color.White,
-                    contentColor = navyBlue,
-                    modifier = Modifier.size(72.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Enter City",
-                        modifier = Modifier.size(36.dp)
-                    )
                 }
             }
 
