@@ -17,6 +17,8 @@ class WeatherViewModel : ViewModel() {
 
     private val apiKey = "f125c0f260f7e23ecbffb7f6b575cc54"
 
+
+
     fun fetchWeather(city: String) {
         viewModelScope.launch {
             try {
