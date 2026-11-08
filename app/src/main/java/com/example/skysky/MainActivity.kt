@@ -73,6 +73,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
             contentAlignment = Alignment.Center
         ) {
             val currentData = weatherData
+
             if (currentData != null) {
                 Card(
                     modifier = Modifier.padding(16.dp),
