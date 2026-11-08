@@ -53,10 +53,9 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
     // Add this to your variable declarations at the top of WeatherScreen
     val citySuggestions by viewModel.citySuggestions.collectAsState()
 
-    // Modify your OutlinedTextField's onValueChange to fetch suggestions as they type:
     onValueChange = {
         city = it
-        viewModel.getCitySuggestions(it) // Fetches suggestions instantly
+        viewModel.getCitySuggestions(it)
     }
 
     // Add this DropdownMenu directly below your OutlinedTextField in the UI
