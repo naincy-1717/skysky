@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
 fun WeatherScreen(viewModel: WeatherViewModel) {
     val weatherData by viewModel.weatherData.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val citySuggestions by viewModel.citySuggestions.collectAsState()
 
     var city by remember { mutableStateOf("") }
     var showSearchPopup by remember { mutableStateOf(false) }
@@ -50,36 +51,11 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
     val lightBlue = Color(0xFFADD8E6)
     val navyBlue = Color(0xFF000080)
 
-    // Add this to your variable declarations at the top of WeatherScreen
-    val citySuggestions by viewModel.citySuggestions.collectAsState()
-
-    onValueChange = {
-        city = it
-        viewModel.getCitySuggestions(it)
-    }
-
-    // Add this DropdownMenu directly below your OutlinedTextField in the UI
-    DropdownMenu(
-        expanded = citySuggestions.isNotEmpty(),
-        onDismissRequest = { /* Hide menu when clicking outside */ }
-    ) {
-        citySuggestions.forEach { suggestion ->
-            DropdownMenuItem(
-                text = { Text("${suggestion.name}, ${suggestion.state ?: ""} ${suggestion.country}") },
-                onClick = {
-                    // When they click a name, set the search bar to the exact name and fetch the weather
-                    city = suggestion.name
-                    viewModel.fetchWeather(suggestion.name)
-                    // Clear the suggestions list to close the dropdown
-                }
-            )
-        }
-    }
-
     Scaffold(
         containerColor = lightBlue,
         floatingActionButton = {
-            if (weatherData != null) {
+            val currentData = weatherData
+            if (currentData != null) {
                 FloatingActionButton(
                     onClick = { showSearchPopup = true },
                     containerColor = Color.White,
@@ -96,7 +72,8 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            if (weatherData != null) {
+            val currentData = weatherData
+            if (currentData != null) {
                 Card(
                     modifier = Modifier.padding(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -106,21 +83,22 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = weatherData!!.name, style = MaterialTheme.typography.headlineMedium)
+                        Text(text = currentData.name, style = MaterialTheme.typography.headlineMedium)
 
-                        val iconUrl = "https://openweathermap.org/img/wn/${weatherData!!.weather.firstOrNull()?.icon}@2x.png"
+                        val iconCode = currentData.weather.firstOrNull()?.icon
+                        val iconUrl = "https://openweathermap.org/img/wn/${iconCode}@2x.png"
                         AsyncImage(
                             model = iconUrl,
                             contentDescription = "Weather Icon",
                             modifier = Modifier.size(100.dp)
                         )
 
-                        Text(text = "${weatherData!!.main.temp} °C", style = MaterialTheme.typography.displayMedium)
-                        Text(text = weatherData!!.weather.firstOrNull()?.description?.uppercase() ?: "")
+                        Text(text = "${currentData.main.temp} °C", style = MaterialTheme.typography.displayMedium)
+                        Text(text = currentData.weather.firstOrNull()?.description?.uppercase() ?: "")
 
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(text = "Humidity: ${weatherData!!.main.humidity}%")
-                        Text(text = "Wind Speed: ${weatherData!!.wind.speed} m/s")
+                        Text(text = "Humidity: ${currentData.main.humidity}%")
+                        Text(text = "Wind Speed: ${currentData.wind.speed} m/s")
                     }
                 }
             } else {
@@ -154,9 +132,10 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 }
             }
 
-            if (errorMessage != null) {
+            val currentError = errorMessage
+            if (currentError != null) {
                 Text(
-                    text = errorMessage!!,
+                    text = currentError,
                     color = Color.Red,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -169,39 +148,79 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
 
         if (showSearchPopup) {
             AlertDialog(
-                onDismissRequest = { showSearchPopup = false },
+                onDismissRequest = {
+                    showSearchPopup = false
+                    viewModel.getCitySuggestions("")
+                },
                 title = { Text("Enter City") },
                 text = {
-                    OutlinedTextField(
-                        value = city,
-                        onValueChange = { city = it },
-                        placeholder = { Text("Type the city name") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(
-                            onSearch = {
-                                viewModel.fetchWeather(city)
-                                showSearchPopup = false
-                                keyboardController?.hide()
+                    Column {
+                        OutlinedTextField(
+                            value = city,
+                            onValueChange = { input ->
+                                city = input
+                                if (input.length >= 3) {
+                                    viewModel.getCitySuggestions(input)
+                                } else {
+                                    viewModel.getCitySuggestions("")
+                                }
+                            },
+                            placeholder = { Text("Type the city name") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = {
+                                    if (city.isNotBlank()) {
+                                        viewModel.fetchWeather(city)
+                                        viewModel.getCitySuggestions("")
+                                        showSearchPopup = false
+                                        keyboardController?.hide()
+                                    }
+                                }
+                            ),
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    if (city.isNotBlank()) {
+                                        viewModel.fetchWeather(city)
+                                        viewModel.getCitySuggestions("")
+                                        showSearchPopup = false
+                                        keyboardController?.hide()
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Public,
+                                        contentDescription = "Search World",
+                                        tint = lightBlue
+                                    )
+                                }
                             }
-                        ),
-                        trailingIcon = {
-                            IconButton(onClick = {
-                                viewModel.fetchWeather(city)
-                                showSearchPopup = false
-                                keyboardController?.hide()
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Public,
-                                    contentDescription = "Search World",
-                                    tint = lightBlue
+                        )
+
+                        DropdownMenu(
+                            expanded = citySuggestions.isNotEmpty(),
+                            onDismissRequest = { viewModel.getCitySuggestions("") }
+                        ) {
+                            citySuggestions.forEach { suggestion ->
+                                val stateInfo = if (!suggestion.state.isNullOrEmpty()) ", ${suggestion.state}" else ""
+                                DropdownMenuItem(
+                                    text = { Text("${suggestion.name}$stateInfo, ${suggestion.country}") },
+                                    onClick = {
+                                        city = suggestion.name
+                                        viewModel.fetchWeather(suggestion.name)
+                                        viewModel.getCitySuggestions("")
+                                        showSearchPopup = false
+                                        keyboardController?.hide()
+                                    }
                                 )
                             }
                         }
-                    )
+                    }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showSearchPopup = false }) {
+                    TextButton(onClick = {
+                        showSearchPopup = false
+                        viewModel.getCitySuggestions("")
+                    }) {
                         Text("Cancel", color = lightBlue)
                     }
                 }
