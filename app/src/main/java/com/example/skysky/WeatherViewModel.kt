@@ -22,14 +22,14 @@ class WeatherViewModel : ViewModel() {
     val citySuggestions: StateFlow<List<CitySearchResult>> = _citySuggestions
 
     // Function to fetch suggestions while typing
-    fun getCitySuggestions(query: String) {
-        if (query.length < 3) {
+    fun getCitySuggestions(searchQuery: String) {
+        if (searchQuery.length < 3) {
             _citySuggestions.value = emptyList()
             return
         }
         viewModelScope.launch {
             try {
-                val results = RetrofitClient.api.searchCities(query, 5, apiKey)
+                val results = RetrofitClient.api.searchCities(searchQuery, 5, apiKey)
                 _citySuggestions.value = results
             } catch (e: Exception) {
                 _citySuggestions.value = emptyList()
