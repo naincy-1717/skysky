@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.*
@@ -13,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
@@ -38,26 +42,39 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
     var city by remember { mutableStateOf("") }
     val navyBlue = Color(0xFF000080)
 
+    // This allows us to control the keyboard (like hiding it after a search)
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     Scaffold(
         containerColor = navyBlue,
         topBar = {
-            // Search bar is moved lower using top = 40.dp
             OutlinedTextField(
                 value = city,
                 onValueChange = { city = it },
-                placeholder = { Text("Type city name", color = Color.Gray) },
+                placeholder = { Text("Type the city name", color = Color.Gray) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 80.dp, bottom = 16.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 40.dp, bottom = 16.dp)
                     .background(Color.White, shape = MaterialTheme.shapes.small),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent
                 ),
-                // Small world icon added at the end of the toolbar
+                // 1. Changes the enter key on the keyboard to a "Search" icon/action
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                // 2. Tells the app what to do when that search button is pressed
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        viewModel.fetchWeather(city)
+                        keyboardController?.hide() // Hides the keyboard after searching
+                    }
+                ),
                 trailingIcon = {
-                    IconButton(onClick = { viewModel.fetchWeather(city) }) {
+                    IconButton(onClick = {
+                        viewModel.fetchWeather(city)
+                        keyboardController?.hide()
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Public,
                             contentDescription = "Search World",
@@ -74,9 +91,6 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            // The plus sign has been completely removed from this area
-
-            // Display weather data if available
             if (weatherData != null) {
                 Card(
                     modifier = Modifier.padding(16.dp),
@@ -106,7 +120,6 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 }
             }
 
-            // Error message display at the bottom
             if (errorMessage != null) {
                 Text(
                     text = errorMessage!!,
