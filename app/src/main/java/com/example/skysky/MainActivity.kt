@@ -50,6 +50,33 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
     val lightBlue = Color(0xFFADD8E6)
     val navyBlue = Color(0xFF000080)
 
+    // Add this to your variable declarations at the top of WeatherScreen
+    val citySuggestions by viewModel.citySuggestions.collectAsState()
+
+    // Modify your OutlinedTextField's onValueChange to fetch suggestions as they type:
+    onValueChange = {
+        city = it
+        viewModel.getCitySuggestions(it) // Fetches suggestions instantly
+    }
+
+    // Add this DropdownMenu directly below your OutlinedTextField in the UI
+    DropdownMenu(
+        expanded = citySuggestions.isNotEmpty(),
+        onDismissRequest = { /* Hide menu when clicking outside */ }
+    ) {
+        citySuggestions.forEach { suggestion ->
+            DropdownMenuItem(
+                text = { Text("${suggestion.name}, ${suggestion.state ?: ""} ${suggestion.country}") },
+                onClick = {
+                    // When they click a name, set the search bar to the exact name and fetch the weather
+                    city = suggestion.name
+                    viewModel.fetchWeather(suggestion.name)
+                    // Clear the suggestions list to close the dropdown
+                }
+            )
+        }
+    }
+
     Scaffold(
         containerColor = lightBlue,
         floatingActionButton = {
