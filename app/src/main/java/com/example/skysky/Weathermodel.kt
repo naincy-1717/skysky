@@ -5,7 +5,7 @@ data class WeatherResponse(
     val main: MainData,
     val weather: List<WeatherData>,
     val wind: WindData,
-    val sys: Sys // Added this missing property
+    val sys: Sys
 )
 
 data class MainData(
@@ -34,6 +34,7 @@ data class CitySearchResult(
 data class Sys(
     val country: String
 )
+
 data class ForecastResponse(
     val list: List<ForecastItem>
 )

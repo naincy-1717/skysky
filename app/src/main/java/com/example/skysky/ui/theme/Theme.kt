@@ -18,14 +18,14 @@ import androidx.core.view.WindowCompat
 
 // Dark Theme Colors
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF90CAF9), // Light Blue for accents
+    primary = Color(0xFF90CAF9),
     secondary = Color(0xFF03DAC5),
-    background = Color(0xFF121212), // Very dark gray for background
-    surface = Color(0xFF1E1E1E), // Slightly lighter gray for cards/dialogs
+    background = Color(0xFF0B132B), // Deep midnight navy for night mode
+    surface = Color(0xFF1C2541), // Dark slate blue for cards
     onPrimary = Color.Black,
     onSecondary = Color.Black,
-    onBackground = Color.White, // White text on dark background
-    onSurface = Color.White // White text on dark cards
+    onBackground = Color.White,
+    onSurface = Color.White
 )
 
 // Light Theme Colors (Your existing pastel theme)

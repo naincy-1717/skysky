@@ -59,25 +59,19 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
     val onCardTextColor = MaterialTheme.colorScheme.onSurface
 
     val isDark = isSystemInDarkTheme()
-    val whiteCloud = if (isDark) Color(0xFFBBBBBB) else Color(0xFFFFFFFF)
-    val lightGrayCloud = if (isDark) Color(0xFF888888) else Color(0xFFE8F1F5)
+    val whiteCloud = if (isDark) Color(0xFF778899) else Color(0xFFFFFFFF)
+    val lightGrayCloud = if (isDark) Color(0xFF4A5568) else Color(0xFFE8F1F5)
 
-    // Detect weather type for animations (Rain, Snow, Sun/Clear)
-    val weatherDesc = weatherData?.weather?.firstOrNull()?.description?.lowercase() ?: ""
-    val isRaining = weatherDesc.contains("rain") || weatherDesc.contains("drizzle")
-    val isSnowing = weatherDesc.contains("snow")
-    val isSunny = weatherDesc.contains("clear") || weatherDesc.contains("sun")
-
-    // Infinite transition for continuous particle animations
-    val infiniteTransition = rememberInfiniteTransition(label = "weatherAnimation")
-    val animProgress by infiniteTransition.animateFloat(
-        initialValue = 0f,
+    // Infinite transition for twinkling stars and sparkles
+    val infiniteTransition = rememberInfiniteTransition(label = "starTwinkle")
+    val twinkleProgress by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
         ),
-        label = "particleProgress"
+        label = "twinkleAlpha"
     )
 
     Box(
@@ -85,61 +79,42 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
             .fillMaxSize()
             .background(backgroundColor)
     ) {
-        // Background Grid & Weather Animations Canvas
+        // --- Dark Sparkly Night Canvas ---
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasWidth = size.width
             val canvasHeight = size.height
             val gridStep = 60.dp.toPx()
-            val gridColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.4f)
 
-            // Grid lines
+            // Faint grid lines
+            val gridColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.3f)
+
             var x = 0f
             while (x < canvasWidth) {
-                drawLine(color = gridColor, start = Offset(x, 0f), end = Offset(x, canvasHeight), strokeWidth = 2f)
+                drawLine(color = gridColor, start = Offset(x, 0f), end = Offset(x, canvasHeight), strokeWidth = 1.5f)
                 x += gridStep
             }
             var y = 0f
             while (y < canvasHeight) {
-                drawLine(color = gridColor, start = Offset(0f, y), end = Offset(canvasWidth, y), strokeWidth = 2f)
+                drawLine(color = gridColor, start = Offset(0f, y), end = Offset(canvasWidth, y), strokeWidth = 1.5f)
                 y += gridStep
             }
 
-            // --- ANIMATION EFFECTS ---
-            if (isRaining) {
-                // Falling raindrops effect
-                val dropCount = 40
-                for (i in 0 until dropCount) {
-                    val startX = (i * 37f) % canvasWidth
-                    val startY = ((i * 73f) + (animProgress * canvasHeight)) % canvasHeight
-                    drawLine(
-                        color = Color.Cyan.copy(alpha = 0.6f),
-                        start = Offset(startX, startY),
-                        end = Offset(startX - 5f, startY + 20f),
-                        strokeWidth = 3f
-                    )
-                }
-            } else if (isSnowing) {
-                // Falling snowflakes effect
-                val flakeCount = 30
-                for (i in 0 until flakeCount) {
-                    val flakeX = ((i * 53f) + kotlin.math.sin(animProgress * 6.28f + i) * 20f) % canvasWidth
-                    val flakeY = ((i * 91f) + (animProgress * canvasHeight)) % canvasHeight
+            // Sparkles and Stars at grid intersections and random points
+            x = gridStep
+            var index = 0
+            while (x < canvasWidth) {
+                y = gridStep
+                while (y < canvasHeight) {
+                    val alphaMultiplier = if (index % 2 == 0) twinkleProgress else (1f - twinkleProgress + 0.3f)
                     drawCircle(
-                        color = Color.White.copy(alpha = 0.8f),
-                        radius = (i % 3 + 3).toFloat(),
-                        center = Offset(flakeX, flakeY)
+                        color = Color.White.copy(alpha = if (isDark) alphaMultiplier.coerceIn(0.1f, 1f) else 0.8f),
+                        radius = if (isDark && index % 3 == 0) 4f else 2.5f,
+                        center = Offset(x + (index % 15), y - (index % 10))
                     )
+                    y += gridStep
+                    index++
                 }
-            } else if (isSunny) {
-                // Pulsing sun rays / glowing background circles
-                val centerX = canvasWidth / 2f
-                val centerY = 200f
-                val radius = 80f + (animProgress * 20f)
-                drawCircle(
-                    color = Color.Yellow.copy(alpha = 0.15f),
-                    radius = radius,
-                    center = Offset(centerX, centerY)
-                )
+                x += gridStep
             }
         }
 
@@ -147,13 +122,13 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
         Icon(
             imageVector = Icons.Default.Cloud,
             contentDescription = null,
-            tint = whiteCloud.copy(alpha = 0.7f),
+            tint = whiteCloud.copy(alpha = 0.6f),
             modifier = Modifier.align(Alignment.TopStart).offset(x = 30.dp, y = 80.dp).size(100.dp)
         )
         Icon(
             imageVector = Icons.Default.Cloud,
             contentDescription = null,
-            tint = lightGrayCloud.copy(alpha = 0.8f),
+            tint = lightGrayCloud.copy(alpha = 0.7f),
             modifier = Modifier.align(Alignment.TopEnd).offset(x = (-20).dp, y = 140.dp).size(120.dp)
         )
 
