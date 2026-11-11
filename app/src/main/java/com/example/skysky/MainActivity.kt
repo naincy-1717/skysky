@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -45,68 +46,100 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WeatherScreen(viewModel: WeatherViewModel) {
     val weatherData by viewModel.weatherData.collectAsState()
+    val forecastData by viewModel.forecastData.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     var city by remember { mutableStateOf("") }
     var showSearchPopup by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // Use theme colors instead of hardcoded colors!
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
     val cardColor = MaterialTheme.colorScheme.surface
     val onCardTextColor = MaterialTheme.colorScheme.onSurface
 
-    // We can keep the clouds relatively constant or slightly adjust them for dark mode
     val isDark = isSystemInDarkTheme()
-    val whiteCloud = if(isDark) Color(0xFFBBBBBB) else Color(0xFFFFFFFF)
-    val lightGrayCloud = if(isDark) Color(0xFF888888) else Color(0xFFE8F1F5)
+    val whiteCloud = if (isDark) Color(0xFFBBBBBB) else Color(0xFFFFFFFF)
+    val lightGrayCloud = if (isDark) Color(0xFF888888) else Color(0xFFE8F1F5)
+
+    // Detect weather type for animations (Rain, Snow, Sun/Clear)
+    val weatherDesc = weatherData?.weather?.firstOrNull()?.description?.lowercase() ?: ""
+    val isRaining = weatherDesc.contains("rain") || weatherDesc.contains("drizzle")
+    val isSnowing = weatherDesc.contains("snow")
+    val isSunny = weatherDesc.contains("clear") || weatherDesc.contains("sun")
+
+    // Infinite transition for continuous particle animations
+    val infiniteTransition = rememberInfiniteTransition(label = "weatherAnimation")
+    val animProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "particleProgress"
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundColor) // Uses Theme Background
+            .background(backgroundColor)
     ) {
-        // --- 1. Background Decor: Sparkly Light Grid and Clouds ---
+        // Background Grid & Weather Animations Canvas
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasWidth = size.width
             val canvasHeight = size.height
             val gridStep = 60.dp.toPx()
+            val gridColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.4f)
 
-            val gridColor = if(isDark) Color.White.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.4f)
-
-            // Vertical lines
+            // Grid lines
             var x = 0f
             while (x < canvasWidth) {
-                drawLine(
-                    color = gridColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, canvasHeight),
-                    strokeWidth = 2f
-                )
+                drawLine(color = gridColor, start = Offset(x, 0f), end = Offset(x, canvasHeight), strokeWidth = 2f)
                 x += gridStep
             }
-            // Horizontal lines
             var y = 0f
             while (y < canvasHeight) {
-                drawLine(
-                    color = gridColor,
-                    start = Offset(0f, y),
-                    end = Offset(canvasWidth, y),
-                    strokeWidth = 2f
-                )
+                drawLine(color = gridColor, start = Offset(0f, y), end = Offset(canvasWidth, y), strokeWidth = 2f)
                 y += gridStep
             }
 
-            // Sparkles
-            x = gridStep
-            while (x < canvasWidth) {
-                y = gridStep
-                while (y < canvasHeight) {
-                    drawCircle(color = if(isDark) Color.LightGray else Color.White, radius = 3f, center = Offset(x, y))
-                    y += gridStep
+            // --- ANIMATION EFFECTS ---
+            if (isRaining) {
+                // Falling raindrops effect
+                val dropCount = 40
+                for (i in 0 until dropCount) {
+                    val startX = (i * 37f) % canvasWidth
+                    val startY = ((i * 73f) + (animProgress * canvasHeight)) % canvasHeight
+                    drawLine(
+                        color = Color.Cyan.copy(alpha = 0.6f),
+                        start = Offset(startX, startY),
+                        end = Offset(startX - 5f, startY + 20f),
+                        strokeWidth = 3f
+                    )
                 }
-                x += gridStep
+            } else if (isSnowing) {
+                // Falling snowflakes effect
+                val flakeCount = 30
+                for (i in 0 until flakeCount) {
+                    val flakeX = ((i * 53f) + kotlin.math.sin(animProgress * 6.28f + i) * 20f) % canvasWidth
+                    val flakeY = ((i * 91f) + (animProgress * canvasHeight)) % canvasHeight
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.8f),
+                        radius = (i % 3 + 3).toFloat(),
+                        center = Offset(flakeX, flakeY)
+                    )
+                }
+            } else if (isSunny) {
+                // Pulsing sun rays / glowing background circles
+                val centerX = canvasWidth / 2f
+                val centerY = 200f
+                val radius = 80f + (animProgress * 20f)
+                drawCircle(
+                    color = Color.Yellow.copy(alpha = 0.15f),
+                    radius = radius,
+                    center = Offset(centerX, centerY)
+                )
             }
         }
 
@@ -115,44 +148,26 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
             imageVector = Icons.Default.Cloud,
             contentDescription = null,
             tint = whiteCloud.copy(alpha = 0.7f),
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .offset(x = 30.dp, y = 80.dp)
-                .size(100.dp)
+            modifier = Modifier.align(Alignment.TopStart).offset(x = 30.dp, y = 80.dp).size(100.dp)
         )
         Icon(
             imageVector = Icons.Default.Cloud,
             contentDescription = null,
             tint = lightGrayCloud.copy(alpha = 0.8f),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = (-20).dp, y = 140.dp)
-                .size(120.dp)
-        )
-        Icon(
-            imageVector = Icons.Default.Cloud,
-            contentDescription = null,
-            tint = whiteCloud.copy(alpha = 0.6f),
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = 10.dp, y = (-120).dp)
-                .size(90.dp)
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-20).dp, y = 140.dp).size(120.dp)
         )
 
-        // --- 2. Main Foreground Content ---
+        // Main Foreground Content
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
             Text(
                 text = "Hello user !",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
-                color = textColor, // Theme text color
+                color = textColor,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -163,24 +178,20 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             FloatingActionButton(
                 onClick = { showSearchPopup = true },
-                containerColor = cardColor, // Theme card color
-                contentColor = textColor, // Theme text color
+                containerColor = cardColor,
+                contentColor = textColor,
                 elevation = FloatingActionButtonDefaults.elevation(8.dp),
                 shape = CircleShape,
                 modifier = Modifier.size(80.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Search City",
-                    modifier = Modifier.size(40.dp)
-                )
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Search City", modifier = Modifier.size(40.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = "Tap to enter the city",
@@ -189,15 +200,12 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 color = textColor.copy(alpha = 0.9f)
             )
 
-            Spacer(modifier = Modifier.height(30.dp))
-
             if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = errorMessage!!,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .background(cardColor.copy(alpha = 0.9f), shape = MaterialTheme.shapes.small)
-                        .padding(16.dp),
+                    modifier = Modifier.background(cardColor.copy(alpha = 0.9f), shape = MaterialTheme.shapes.small).padding(16.dp),
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold
                 )
@@ -205,16 +213,12 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
 
             weatherData?.let { weather ->
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                     colors = CardDefaults.cardColors(containerColor = cardColor.copy(alpha = 0.95f)),
                     elevation = CardDefaults.cardElevation(8.dp)
                 ) {
                     Column(
-                        modifier = Modifier
-                            .padding(24.dp)
-                            .fillMaxWidth(),
+                        modifier = Modifier.padding(20.dp).fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -224,12 +228,8 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                             color = onCardTextColor
                         )
 
-                        val iconUrl = "https://openweathermap.org/img/wn/${weather.weather.firstOrNull()?.icon}@4x.png"
-                        AsyncImage(
-                            model = iconUrl,
-                            contentDescription = "Weather Icon",
-                            modifier = Modifier.size(120.dp)
-                        )
+                        val iconUrl = "https://openweathermap.org/img/wn/${weather.weather.firstOrNull()?.icon}@2x.png"
+                        AsyncImage(model = iconUrl, contentDescription = "Weather Icon", modifier = Modifier.size(90.dp))
 
                         Text(
                             text = "${weather.main.temp} °C",
@@ -240,24 +240,56 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         Text(
                             text = weather.weather.firstOrNull()?.description?.uppercase() ?: "",
                             style = MaterialTheme.typography.titleMedium,
-                            color = if(isDark) Color.LightGray else Color.Gray
+                            color = if (isDark) Color.LightGray else Color.Gray
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = if(isDark) Color.DarkGray else Color.LightGray, thickness = 1.dp)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(color = if (isDark) Color.DarkGray else Color.LightGray, thickness = 1.dp)
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Humidity", color = if(isDark) Color.LightGray else Color.Gray)
+                                Text("Humidity", color = if (isDark) Color.LightGray else Color.Gray)
                                 Text("${weather.main.humidity}%", fontWeight = FontWeight.Bold, color = onCardTextColor)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Wind", color = if(isDark) Color.LightGray else Color.Gray)
+                                Text("Wind", color = if (isDark) Color.LightGray else Color.Gray)
                                 Text("${weather.wind.speed} m/s", fontWeight = FontWeight.Bold, color = onCardTextColor)
+                            }
+                        }
+
+                        // 5-Day Forecast Section
+                        forecastData?.let { list ->
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(color = if (isDark) Color.DarkGray else Color.LightGray, thickness = 1.dp)
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "5-Day Forecast",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = onCardTextColor
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                list.forEach { item ->
+                                    val dateStr = item.dt_txt.split(" ")[0]
+                                    val dayName = dateStr.takeLast(5)
+
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(text = dayName, style = MaterialTheme.typography.bodySmall, color = onCardTextColor)
+                                        val forecastIconUrl = "https://openweathermap.org/img/wn/${item.weather.firstOrNull()?.icon}.png"
+                                        AsyncImage(model = forecastIconUrl, contentDescription = null, modifier = Modifier.size(36.dp))
+                                        Text(text = "${item.main.temp.toInt()}°C", fontWeight = FontWeight.Bold, color = onCardTextColor)
+                                    }
+                                }
                             }
                         }
                     }
@@ -265,7 +297,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
             }
         }
 
-        // --- 3. Search Popup Dialog ---
+        // Search Popup Dialog
         if (showSearchPopup) {
             AlertDialog(
                 onDismissRequest = {
@@ -299,11 +331,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                                     showSearchPopup = false
                                     keyboardController?.hide()
                                 }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Search,
-                                        contentDescription = "Search",
-                                        tint = textColor
-                                    )
+                                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = textColor)
                                 }
                             },
                             colors = OutlinedTextFieldDefaults.colors(
