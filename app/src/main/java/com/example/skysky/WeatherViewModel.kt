@@ -20,6 +20,20 @@ class WeatherViewModel : ViewModel() {
     // Holds the list of suggested cities
     private val _citySuggestions = MutableStateFlow<List<CitySearchResult>>(emptyList())
     val citySuggestions: StateFlow<List<CitySearchResult>> = _citySuggestions
+    private val _forecastData = MutableStateFlow<List<ForecastItem>?>(null)
+    val forecastData: StateFlow<List<ForecastItem>?> = _forecastData
+
+    fun fetchForecast(cityName: String) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.api.getForecast(cityName, apiKey)
+                // Filter to get roughly one forecast per day (e.g., midday entries)
+                _forecastData.value = response.list.filter { it.dt_txt.contains("12:00:00") }
+            } catch (e: Exception) {
+                // Handle error if needed
+            }
+        }
+    }
 
     // Function to fetch suggestions while typing
     fun getCitySuggestions(searchQuery: String) {

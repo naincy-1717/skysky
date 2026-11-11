@@ -34,3 +34,12 @@ data class CitySearchResult(
 data class Sys(
     val country: String
 )
+data class ForecastResponse(
+    val list: List<ForecastItem>
+)
+
+data class ForecastItem(
+    val dt_txt: String,
+    val main: MainData,
+    val weather: List<WeatherData>
+)

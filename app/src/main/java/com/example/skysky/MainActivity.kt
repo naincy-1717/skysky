@@ -218,7 +218,8 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "${weather.name}, ${weather.sys.country}",                            style = MaterialTheme.typography.headlineMedium,
+                            text = "${weather.name}, ${weather.sys.country}",
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = onCardTextColor
                         )

@@ -20,4 +20,12 @@ interface WeatherApi {
         @Query("limit") limit: Int = 5,
         @Query("appid") apiKey: String
     ): List<CitySearchResult>
+
+    @GET("data/2.5/forecast")
+    suspend fun getForecast(
+        @Query("q") city: String,
+        @Query("appid") apiKey: String,
+        @Query("units") units: String = "metric"
+    ): ForecastResponse
 }
+
