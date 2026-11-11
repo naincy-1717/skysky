@@ -1,14 +1,11 @@
 package com.example.skysky
 
-// This represents the main response from OpenWeatherMap.
-// This translates the raw, external data .
-// The app's code can easily read, manage, and display on the screen.
-
 data class WeatherResponse(
-    val name: String, // City name
-    val main: MainData, // Temperature and humidity
-    val weather: List<WeatherData>, // Weather conditions and icons
-    val wind: WindData // Wind speed
+    val name: String,
+    val main: MainData,
+    val weather: List<WeatherData>,
+    val wind: WindData,
+    val sys: Sys // Added this missing property
 )
 
 data class MainData(
@@ -25,10 +22,15 @@ data class WeatherData(
 data class WindData(
     val speed: Double
 )
+
 data class CitySearchResult(
     val name: String,
     val state: String?,
     val country: String,
     val lat: Double,
     val lon: Double
+)
+
+data class Sys(
+    val country: String
 )
